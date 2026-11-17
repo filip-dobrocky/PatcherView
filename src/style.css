@@ -46,3 +46,14 @@
 .pd-cord.pd-sig { stroke-width: 2; }
 .pd-sub { cursor: pointer; }
 .pd-sub:hover .pd-box { stroke-width: 2; }
+
+.pd-patch .pd-add .pd-box, .pd-patch .pd-add .pd-iem { stroke: #1a7f37; stroke-width: 2; fill: #dafbe1; }
+.pd-patch .pd-add text, .pd-patch .pd-cord.pd-add { fill: #1a7f37; stroke: #1a7f37; }
+.pd-patch .pd-add text { stroke: none; }
+.pd-patch .pd-mod .pd-box, .pd-patch .pd-mod .pd-iem { stroke: #bf8700; stroke-width: 2; fill: #fff8c5; }
+.pd-patch .pd-mod text, .pd-patch .pd-move .pd-comment text { fill: #9a6700; }
+.pd-patch .pd-move .pd-box, .pd-patch .pd-move .pd-iem { stroke: #bf8700; stroke-dasharray: 4 2; }
+.pd-patch .pd-del { opacity: .6; }
+.pd-patch .pd-del .pd-box, .pd-patch .pd-del .pd-iem, .pd-patch .pd-del .pd-line, .pd-patch .pd-cord.pd-del { stroke: #cf222e; stroke-dasharray: 3 2; }
+.pd-patch .pd-del text { fill: #cf222e; text-decoration: line-through; }
+.pd-patch .pd-del .pd-io { fill: #cf222e; }

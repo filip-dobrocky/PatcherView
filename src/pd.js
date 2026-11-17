@@ -197,9 +197,11 @@ function plotArray(a, b) {
   return `<polyline points="${pts.join(' ')}" class="pd-line"/>`;
 }
 
-export function render(pd, patchId = pd.rootPatchId) {
+// mark.node(id) / mark.cord(i): extra class for that item, or null to lay it out without drawing it.
+function drawPatch(pd, patchId, mark = {}) {
   const patch = pd.patches[patchId];
   const metrics = FONTS[pd.fontSize || 10];
+  const nodeCls = mark.node ?? (() => ''), cordCls = mark.cord ?? (() => '');
   const boxes = {};
   for (const n of Object.values(patch.nodes)) {
     if (n.nodeClass === 'array') continue;
@@ -211,30 +213,166 @@ export function render(pd, patchId = pd.rootPatchId) {
     if (t) t.inlets = Math.max(t.inlets, c.sink.portletId + 1);
   }
 
-  const parts = [];
+  const parts = [], drawn = [];
   // canvases go underneath everything else, like in Pd
   const ordered = Object.values(patch.nodes).filter((n) => boxes[n.id]).sort((a, b) => (b.type === 'cnv') - (a.type === 'cnv'));
   for (const n of ordered) {
+    const cls = nodeCls(n.id);
+    if (cls === null) continue;
     const b = boxes[n.id];
+    drawn.push(b);
+    if (cls) parts.push(`<g class="${cls}">`);
     parts.push(drawNode(pd, n, b, metrics));
     for (let i = 0; i < b.inlets; i++) parts.push(`<rect class="pd-io" x="${ioX(b, i, b.inlets)}" y="${b.y}" width="${IOWIDTH}" height="${IOHEIGHT}"/>`);
     for (let i = 0; i < b.outlets; i++) parts.push(`<rect class="pd-io" x="${ioX(b, i, b.outlets)}" y="${b.y + b.h - IOHEIGHT + 1}" width="${IOWIDTH}" height="${IOHEIGHT - 1}"/>`);
+    if (cls) parts.push('</g>');
   }
-  for (const c of patch.connections) {
+  patch.connections.forEach((c, ci) => {
     const s = boxes[c.source.nodeId], t = boxes[c.sink.nodeId];
-    if (!s || !t) continue;
+    const cls = cordCls(ci);
+    if (!s || !t || cls === null) return;
     const sig = isSignalOut(pd, patch.nodes[c.source.nodeId], c.source.portletId);
     const x1 = ioX(s, c.source.portletId, s.outlets) + IOWIDTH / 2, y1 = s.y + s.h;
     const x2 = ioX(t, c.sink.portletId, t.inlets) + IOWIDTH / 2, y2 = t.y;
-    parts.push(`<line class="pd-cord${sig ? ' pd-sig' : ''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`);
+    parts.push(`<line class="pd-cord${sig ? ' pd-sig' : ''}${cls ? ' ' + cls : ''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`);
+  });
+  return { parts, drawn };
+}
+
+function svg(drawn, parts, fontSize) {
+  const pad = 10;
+  const minX = Math.min(0, ...drawn.map((b) => b.x)) - pad, minY = Math.min(0, ...drawn.map((b) => b.y - (b.shape === 'gop' ? 15 : 0))) - pad;
+  const maxX = Math.max(100, ...drawn.map((b) => b.x + b.w + 5)) + pad, maxY = Math.max(50, ...drawn.map((b) => b.y + b.h)) + pad;
+  const w = maxX - minX, h = maxY - minY;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="pd-patch" viewBox="${minX} ${minY} ${w} ${h}" width="${w}" height="${h}" font-size="${fontSize || 10}">${parts.join('')}</svg>`;
+}
+
+export function render(pd, patchId = pd.rootPatchId) {
+  const { parts, drawn } = drawPatch(pd, patchId);
+  return svg(drawn, parts, pd.fontSize);
+}
+
+const KINDS = new Set(['msg', 'text', 'floatatom', 'symbolatom', 'listbox', 'bng', 'tgl', 'hsl', 'vsl', 'hradio', 'vradio', 'nbx', 'vu', 'cnv']);
+const kind = (n) => (KINDS.has(n.type) ? n.type : 'obj');
+const tokens = (n) => [n.type, ...(n.args ?? [])];
+const label = (n) => displayText(tokens(n));
+const dist = (a, b) => Math.hypot(a.layout.x - b.layout.x, a.layout.y - b.layout.y);
+
+function tokenSim(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1));
+  }
+  return 1 - d[a.length][b.length] / Math.max(a.length, b.length, 1);
+}
+
+// node id -> [[dir, port, otherId, otherPort]]
+function neighbours(p) {
+  const m = {};
+  for (const c of p?.connections ?? []) {
+    (m[c.source.nodeId] ??= []).push(['o', c.source.portletId, c.sink.nodeId, c.sink.portletId]);
+    (m[c.sink.nodeId] ??= []).push(['i', c.sink.portletId, c.source.nodeId, c.source.portletId]);
+  }
+  return m;
+}
+
+// Object matching after chsh2/pure-diff-viewer: unique-text anchors, propagate along cords, then best-score leftovers.
+function matchNodes(op, np) {
+  const O = Object.values(op?.nodes ?? {}), N = Object.values(np?.nodes ?? {});
+  const oN = neighbours(op), nN = neighbours(np);
+  const fwd = new Map(), back = new Map();
+  const link = (nid, oid) => { fwd.set(nid, oid); back.set(oid, nid); };
+  const sig = (p, nbs, id) => new Set((nbs[id] ?? []).map(([d, i, x, j]) => d + i + label(p.nodes[x]) + j));
+  const nbSim = (n, o) => {
+    const a = sig(np, nN, n.id), b = sig(op, oN, o.id);
+    let k = 0;
+    for (const x of a) k += b.has(x);
+    return k / Math.max(a.size, b.size, 1);
+  };
+
+  const byLabel = (list) => {
+    const m = new Map();
+    for (const n of list) m.set(label(n), [...(m.get(label(n)) ?? []), n]);
+    return m;
+  };
+  const oL = byLabel(O);
+  for (const [k, ns] of byLabel(N)) if (ns.length === 1 && oL.get(k)?.length === 1) link(ns[0].id, oL.get(k)[0].id);
+
+  const queue = [...fwd];
+  while (queue.length) {
+    const [nid, oid] = queue.pop();
+    for (const [d, i, x, j] of nN[nid] ?? []) {
+      if (fwd.has(x)) continue;
+      const hit = (oN[oid] ?? []).find(([d2, i2, y, j2]) => d2 === d && i2 === i && j2 === j && !back.has(y) && label(op.nodes[y]) === label(np.nodes[x]));
+      if (hit) { link(x, hit[2]); queue.push([x, hit[2]]); }
+    }
   }
 
-  const all = Object.values(boxes);
-  const pad = 10;
-  const minX = Math.min(0, ...all.map((b) => b.x)) - pad, minY = Math.min(0, ...all.map((b) => b.y - (b.shape === 'gop' ? 15 : 0))) - pad;
-  const maxX = Math.max(100, ...all.map((b) => b.x + b.w + 5)) + pad, maxY = Math.max(50, ...all.map((b) => b.y + b.h)) + pad;
-  const w = maxX - minX, h = maxY - minY;
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="pd-patch" viewBox="${minX} ${minY} ${w} ${h}" width="${w}" height="${h}" font-size="${pd.fontSize || 10}">${parts.join('')}</svg>`;
+  // ponytail: greedy O(n*m) over leftovers, not min-cost assignment; fine for typical edits.
+  const cand = [];
+  for (const n of N) {
+    if (fwd.has(n.id)) continue;
+    for (const o of O) {
+      if (back.has(o.id) || kind(n) !== kind(o)) continue;
+      const tok = tokenSim(tokens(n), tokens(o)), d = dist(n, o);
+      const score = tok + nbSim(n, o) + (d < 15 ? 1 : 15 / d);
+      if (tok === 1 || score >= 1.2) cand.push([score, n.id, o.id]);
+    }
+  }
+  for (const [, nid, oid] of cand.sort((a, b) => b[0] - a[0])) if (!fwd.has(nid) && !back.has(oid)) link(nid, oid);
+  return back;
+}
+
+const cordKey = (c, map = (id) => id) => `${map(c.source.nodeId)}:${c.source.portletId}>${map(c.sink.nodeId)}:${c.sink.portletId}`;
+
+// Map keyed by patch id (the new id, or the old id for subpatches only in the old version) ->
+// {oldId, newId, nodes: Map(newNodeId -> class), removed: Set(oldNodeId), cords: Set(newCordIdx), removedCords: Set(oldCordIdx), changed}
+// Patch ids are unique across parses, so the two versions' ids never collide.
+export function diffPatches(oldPd, newPd, oldId = oldPd.rootPatchId, newId = newPd.rootPatchId, out = new Map()) {
+  const op = oldPd.patches[oldId], np = newPd.patches[newId];
+  const back = matchNodes(op, np);
+  const fwd = new Map([...back].map(([o, n]) => [n, o]));
+  const e = { oldId, newId, nodes: new Map(), removed: new Set(), cords: new Set(), removedCords: new Set(), changed: false };
+  out.set(newId ?? oldId, e);
+
+  for (const n of Object.values(np?.nodes ?? {})) {
+    const o = op?.nodes[fwd.get(n.id)];
+    let cls = !o ? 'pd-add' : label(n) !== label(o) ? 'pd-mod' : dist(n, o) ? 'pd-move' : '';
+    if (n.nodeClass === 'subpatch') {
+      diffPatches(oldPd, newPd, o?.nodeClass === 'subpatch' ? o.patchId : null, n.patchId, out);
+      if (!cls && out.get(n.patchId).changed) cls = 'pd-mod';
+    }
+    if (cls) e.nodes.set(n.id, cls);
+  }
+  for (const o of Object.values(op?.nodes ?? {})) {
+    if (back.has(o.id)) continue;
+    e.removed.add(o.id);
+    if (o.nodeClass === 'subpatch') diffPatches(oldPd, newPd, o.patchId, null, out);
+  }
+  const mapOld = (id) => back.get(id);
+  const oldKeys = new Set((op?.connections ?? []).map((c) => cordKey(c, mapOld)));
+  const newKeys = new Set((np?.connections ?? []).map((c) => cordKey(c)));
+  np?.connections.forEach((c, i) => oldKeys.has(cordKey(c)) || e.cords.add(i));
+  op?.connections.forEach((c, i) => newKeys.has(cordKey(c, mapOld)) || e.removedCords.add(i));
+  e.changed = !!(e.nodes.size || e.removed.size || e.cords.size || e.removedCords.size);
+  return out;
+}
+
+// Overlay: removed items from the old patch underneath, the new patch on top with changes marked.
+export function renderDiff(oldPd, newPd, diff, key) {
+  const e = diff.get(key);
+  const gone = e.newId === null;
+  const none = { parts: [], drawn: [] };
+  const a = e.oldId === null ? none : drawPatch(oldPd, e.oldId, {
+    node: (id) => (gone || e.removed.has(id) ? 'pd-del' : null),
+    cord: (i) => (gone || e.removedCords.has(i) ? 'pd-del' : null),
+  });
+  const b = gone ? none : drawPatch(newPd, e.newId, {
+    node: (id) => e.nodes.get(id) ?? '',
+    cord: (i) => (e.cords.has(i) ? 'pd-add' : ''),
+  });
+  return svg([...a.drawn, ...b.drawn], [...a.parts, ...b.parts], newPd.fontSize);
 }
 
 // Breadcrumb helper: name of a subpatch for display.
