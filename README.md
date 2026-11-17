@@ -19,3 +19,6 @@ Requires Node ≥ 22.12 (extension.js).
 
 ## Credits
 Patches are parsed with [@webpd/pd-parser](https://github.com/sebpiq/WebPd_pd-parser) (LGPL-3.0, from WebPd by Sébastien Piquemal and Chris McCormick). Geometry follows the [Pure Data](https://github.com/pure-data/pure-data) sources.
+
+## License
+GPL-3.0-or-later, see [LICENSE](LICENSE).
