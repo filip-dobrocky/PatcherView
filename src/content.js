@@ -29,7 +29,9 @@ const HOSTS = [
     },
   },
   {
-    host: /(^|\.)gitlab\.com$/, blob: '/-/blob/', raw: '/-/raw/', view: '.file-holder .blob-viewer[data-type]:not([data-type="auxiliary"]):not([hidden])',
+    host: /(^|\.)gitlab\.com$/, blob: '/-/blob/', raw: '/-/raw/',
+    // newer GitLab wraps the viewer in a horizontal flex scroller; anchoring inside it lets a zoomed patch scroll the bar away
+    view: '.gl-overflow-x-auto:has(> .blob-viewer[data-type]:not([data-type="auxiliary"]):not([hidden])), .file-holder .blob-viewer[data-type]:not([data-type="auxiliary"]):not([hidden])',
     async diff(p) {
       const m = /^(\/.+?)\/-\/(?:commit\/([0-9a-f]{7,40})\/?$|merge_requests\/(\d+)\/diffs)/.exec(p);
       if (!m) return null;
