@@ -2,13 +2,16 @@ import { parsePatch, render, patchName, diffPatches, renderDiff } from './pd.js'
 import { diffFiles } from './udiff.js';
 
 const hashes = new Map();
-const sha256 = (s) => {
-  if (!hashes.has(s)) hashes.set(s, crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)).then((b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('')));
-  return hashes.get(s);
+const hash = (alg, s) => {
+  const k = alg + s;
+  if (!hashes.has(k)) hashes.set(k, crypto.subtle.digest(alg, new TextEncoder().encode(s)).then((b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('')));
+  return hashes.get(k);
 };
+const json = (url) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))));
 
 // Selectors drift; keep every host-specific bit here.
-// diff(): {root, base, head, url} for a commit/PR page; file(path): that file's container, header first, diff body second.
+// diff(path): {root, base, head, url} (or a promise of it) on a commit/PR page, base/head as raw-URL refs;
+// file(path): that file's container, header first, diff body second.
 const HOSTS = [
   {
     host: /(^|\.)github\.com$/, blob: '/blob/', raw: '/raw/', view: '#highlighted-line-menu-positioner',
@@ -21,12 +24,43 @@ const HOSTS = [
       return base && head ? { root: r[1], base: base[1], head: head[1], url: `${r[1]}/compare/${base[1]}...${head[1]}.diff` } : null;
     },
     async file(path) {
-      const id = 'diff-' + (await sha256(path));
+      const id = 'diff-' + (await hash('SHA-256', path));
       return document.getElementById(id) ?? document.querySelector(`[role=region]:has(a[href="#${id}"])`);
     },
   },
-  { host: /(^|\.)gitlab\.com$/, blob: '/-/blob/', raw: '/-/raw/', view: '.file-holder .blob-viewer[data-type]:not([data-type="auxiliary"]):not([hidden])' },
-  { host: /(^|\.)codeberg\.org$/, blob: '/src/', raw: '/raw/', view: '.file-view' },
+  {
+    host: /(^|\.)gitlab\.com$/, blob: '/-/blob/', raw: '/-/raw/', view: '.file-holder .blob-viewer[data-type]:not([data-type="auxiliary"]):not([hidden])',
+    async diff(p) {
+      const m = /^(\/.+?)\/-\/(?:commit\/([0-9a-f]{7,40})\/?$|merge_requests\/(\d+)\/diffs)/.exec(p);
+      if (!m) return null;
+      const api = `/api/v4/projects/${encodeURIComponent(m[1].slice(1))}`;
+      if (m[2]) {
+        const c = await json(`${api}/repository/commits/${m[2]}`);
+        return { root: m[1], base: c.parent_ids[0] ?? null, head: c.id, url: `${m[1]}/-/commit/${c.id}.diff` };
+      }
+      const { diff_refs: r } = await json(`${api}/merge_requests/${m[3]}`);
+      return { root: m[1], base: r.base_sha, head: r.head_sha, url: `${m[1]}/-/merge_requests/${m[3]}.diff` };
+    },
+    async file(path) {
+      const e = document.getElementById(await hash('SHA-1', path));
+      return e?.tagName === 'DIFF-FILE' ? e.querySelector('article') : e;
+    },
+  },
+  {
+    host: /(^|\.)codeberg\.org$/, blob: '/src/', raw: '/raw/', view: '.file-view',
+    async diff(p) {
+      const m = /^(\/[^/]+\/[^/]+)\/(?:commit\/([0-9a-f]{7,40})\/?$|pulls\/(\d+)\/files)/.exec(p);
+      if (!m) return null;
+      const api = '/api/v1/repos' + m[1];
+      if (m[2]) {
+        const c = await json(`${api}/git/commits/${m[2]}?stat=false&files=false`);
+        return { root: m[1], base: c.parents[0] ? 'commit/' + c.parents[0].sha : null, head: 'commit/' + c.sha, url: `${m[1]}/commit/${c.sha}.diff` };
+      }
+      const pr = await json(`${api}/pulls/${m[3]}`);
+      return { root: m[1], base: 'commit/' + pr.merge_base, head: 'commit/' + pr.head.sha, url: `${m[1]}/pulls/${m[3]}.diff` };
+    },
+    file: async (path) => document.querySelector(`.diff-file-box[data-new-filename="${path.replace(/["\\]/g, '\\$&')}"]`),
+  },
 ];
 
 const store = {
@@ -34,21 +68,29 @@ const store = {
   set: (k, v) => { try { localStorage.setItem('pd4git-' + k, v); } catch {} },
 };
 
-// Self-hosted instances (options page): pick the forge whose blob marker comes first in the path.
-const guessHost = (p) => HOSTS.filter((h) => p.includes(h.blob)).sort((a, b) => p.indexOf(a.blob) - p.indexOf(b.blob))[0];
+// Self-hosted instances (options page): pick the forge whose blob marker comes first in the path,
+// else guess from diff-page markup.
+const [GITHUB, GITLAB, GITEA] = HOSTS;
+const guessHost = (p) => HOSTS.filter((h) => p.includes(h.blob)).sort((a, b) => p.indexOf(a.blob) - p.indexOf(b.blob))[0]
+  ?? (p.includes('/-/') ? GITLAB : document.querySelector('.diff-file-box') ? GITEA : GITHUB);
 
 const get = (url) => fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status))));
 const EMPTY = '#N canvas 0 50 450 300 10;\n';
 
 let pending = null; // { key, text | files }
-let found = {}; // last diff() hit, so the page isn't rescanned on every mutation
+let found = {}; // diff refs of the current page, so they aren't looked up on every mutation
+let asking = '';
 
 function check() {
   const { pathname } = location;
   const h = HOSTS.find((h) => h.host.test(location.hostname)) ?? guessHost(pathname);
-  if (found.path !== pathname) {
-    const d = h?.diff?.(pathname);
-    if (d) found = { path: pathname, d };
+  if (found.path !== pathname && asking !== pathname) {
+    asking = pathname;
+    // a null answer (refs not in the page yet) is retried on the next mutation; a failed lookup isn't
+    Promise.resolve(h?.diff?.(pathname)).then((d) => {
+      if (asking === pathname) asking = '';
+      if (d && location.pathname === pathname) { found = { path: pathname, d }; check(); }
+    }, () => {});
   }
   const d = found.path === pathname ? found.d : null;
   const key = d ? `${d.base}..${d.head}` : h && pathname.endsWith('.pd') && pathname.includes(h.blob) ? pathname : '';
