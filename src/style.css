@@ -1,0 +1,48 @@
+.pd4git {
+  --pd-fg: #000;
+  --pd-bg: #fff;
+  --pd-comment: #000;
+  --pd-io: #000;
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+/* patch colors are authored against Pd's white canvas, so the view stays light in dark themes */
+.pd4git-view { background: var(--pd-bg); color: var(--pd-fg); }
+.pd4git-bar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+  font: 12px system-ui, sans-serif;
+}
+.pd4git-bar button {
+  font: inherit;
+  padding: 2px 8px;
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.pd4git-bar button[aria-pressed="true"] { font-weight: 600; background: rgba(128, 128, 128, .2); }
+.pd4git-bar .pd4git-crumbs { margin-left: 12px; }
+.pd4git-bar .pd4git-crumbs a { cursor: pointer; text-decoration: underline; }
+.pd4git-bar .pd4git-spacer { flex: 1; }
+.pd4git-view { overflow: auto; max-height: 80vh; padding: 8px; }
+
+.pd-patch { font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; display: block; }
+.pd-patch text { white-space: pre; }
+.pd-patch text:not([fill]) { fill: var(--pd-fg); }
+.pd-comment text { fill: var(--pd-comment); }
+.pd-box { fill: var(--pd-bg); stroke: var(--pd-fg); stroke-width: 1; }
+.pd-iem { stroke: var(--pd-fg); stroke-width: 1; }
+.pd-iem:not([fill]) { fill: var(--pd-bg); }
+.pd-line { fill: none; }
+.pd-line:not([stroke]) { stroke: var(--pd-fg); }
+.pd-io { fill: var(--pd-io); }
+.pd-cord { stroke: var(--pd-fg); stroke-width: 1; }
+.pd-cord.pd-sig { stroke-width: 2; }
+.pd-sub { cursor: pointer; }
+.pd-sub:hover .pd-box { stroke-width: 2; }

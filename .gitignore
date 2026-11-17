@@ -1,0 +1,5 @@
+node_modules/
+dist/
+
+# Extension.js local session state
+.extension-js
