@@ -3,6 +3,9 @@
   "name": "pd4git",
   "version": "0.1.0",
   "description": "Shows Pure Data (.pd) patches as graphs on GitHub, GitLab and Codeberg.",
+  "permissions": ["scripting"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "options_ui": { "page": "src/options.html" },
   "content_scripts": [
     {
       "matches": ["https://github.com/*", "https://gitlab.com/*", "https://codeberg.org/*"],

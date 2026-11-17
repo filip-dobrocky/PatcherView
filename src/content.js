@@ -12,11 +12,14 @@ const store = {
   set: (k, v) => { try { localStorage.setItem('pd4git-' + k, v); } catch {} },
 };
 
+// Self-hosted instances (options page): pick the forge whose blob marker comes first in the path.
+const guessHost = (p) => HOSTS.filter((h) => p.includes(h.blob)).sort((a, b) => p.indexOf(a.blob) - p.indexOf(b.blob))[0];
+
 let pending = null; // { key, text: Promise<string> }
 
 function check() {
-  const h = HOSTS.find((h) => h.host.test(location.hostname));
   const { pathname } = location;
+  const h = HOSTS.find((h) => h.host.test(location.hostname)) ?? guessHost(pathname);
   const key = h && pathname.endsWith('.pd') && pathname.includes(h.blob) ? pathname : '';
 
   for (const old of document.querySelectorAll('.pd4git')) {

@@ -2,6 +2,8 @@
 
 Browser extension (Chrome + Firefox) that shows Pure Data `.pd` patches as graphs on GitHub, gitlab.com and Codeberg file pages. A **Patch | Text** toggle switches back to the source view, and the choice is remembered. Click a subpatch to open it.
 
+Self-hosted GitLab, Forgejo/Gitea or GitHub Enterprise: add the site on the extension's options page. The browser asks for permission for that site only.
+
 ```bash
 npm install
 npm test             # renderer tests
@@ -15,7 +17,8 @@ Requires Node ≥ 22.12 (extension.js).
 ## Known limits
 - Inlet/outlet counts come from a small table of vanilla objects in `src/pd.js`. Abstractions and externals only show the iolets that are connected.
 - Graph-on-parent subpatches and arrays render as a labelled frame. Array data is plotted assuming a -1..1 range.
-- No diffs, self-hosted GitLab/Forgejo, or Max patches yet.
+- No diffs or Max patches yet.
+- On custom sites the forge is guessed from the URL (`/-/blob/`, `/blob/` or `/src/`), and the page selectors are the ones used on gitlab.com, github.com and Codeberg.
 
 ## Credits
 Patches are parsed with [@webpd/pd-parser](https://github.com/sebpiq/WebPd_pd-parser) (LGPL-3.0, from WebPd by Sébastien Piquemal and Chris McCormick). Geometry follows the [Pure Data](https://github.com/pure-data/pure-data) sources.
