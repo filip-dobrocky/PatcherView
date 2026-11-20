@@ -5,7 +5,7 @@
   "version": "0.1.1",
   "publisher": "patcherview",
   "license": "GPL-3.0-or-later",
-  "repository": { "type": "git", "url": "https://github.com/filip-dobrocky/pd4git", "directory": "vscode" },
+  "repository": { "type": "git", "url": "https://github.com/filip-dobrocky/PatcherView", "directory": "vscode" },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Visualization"],
   "activationEvents": ["onStartupFinished"],
