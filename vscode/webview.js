@@ -9,7 +9,7 @@ const parse = (kind, t) => (kind === 'pd' ? parsePatch(t || '#N canvas 0 50 450 
 // msg: {kind, state, text} for a file, {kind, state, old, new} for a diff
 window.addEventListener('message', ({ data: m }) => {
   const box = document.createElement('div');
-  box.className = 'pd4git';
+  box.className = 'patcherview';
   document.body.replaceChildren(box);
   const store = {
     get: (k) => m.state[k],
@@ -25,7 +25,7 @@ window.addEventListener('message', ({ data: m }) => {
       mount(box, { store, kind: m.kind, label: 'Diff', root: n.rootPatchId, draw: (id, s) => renderDiff(o, n, diff, id, s), name, onText: () => vscode.postMessage({ text: true }) });
     }
   } catch (e) {
-    box.textContent = `pd4git: couldn't render this patch (${e.message})`;
+    box.textContent = `PatcherView: couldn't render this patch (${e.message})`;
   }
 });
 vscode.postMessage({ ready: true });

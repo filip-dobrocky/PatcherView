@@ -1,9 +1,9 @@
 {
-  "name": "pd4git",
-  "displayName": "pd4git",
+  "name": "patcher-view",
+  "displayName": "PatcherView",
   "description": "Shows Pure Data and Max patches as graphs, and changes to them as a patch diff.",
   "version": "0.1.1",
-  "publisher": "pd4git",
+  "publisher": "patcherview",
   "license": "GPL-3.0-or-later",
   "repository": { "type": "git", "url": "https://github.com/filip-dobrocky/pd4git", "directory": "vscode" },
   "engines": { "vscode": "^1.90.0" },
@@ -14,27 +14,27 @@
   "contributes": {
     "customEditors": [
       {
-        "viewType": "pd4git.patch",
-        "displayName": "pd4git Patch",
+        "viewType": "patcherview.patch",
+        "displayName": "PatcherView Patch",
         "selector": [{ "filenamePattern": "*.pd" }, { "filenamePattern": "*.maxpat" }, { "filenamePattern": "*.maxhelp" }, { "filenamePattern": "*.gendsp" }],
         "priority": "default"
       }
     ],
     "configuration": {
-      "title": "pd4git",
+      "title": "PatcherView",
       "properties": {
-        "pd4git.diffByDefault": {
+        "patcherview.diffByDefault": {
           "type": "boolean",
           "default": true,
           "description": "Open diffs of patches (Source Control, Timeline, commit compare) as one patch diff canvas instead of two patches side by side."
         }
       }
     },
-    "commands": [{ "command": "pd4git.diff", "title": "Patch Diff", "category": "pd4git", "icon": "$(diff)" }],
+    "commands": [{ "command": "patcherview.diff", "title": "Patch Diff", "category": "PatcherView", "icon": "$(diff)" }],
     "menus": {
       "editor/title": [
-        { "command": "pd4git.diff", "group": "navigation", "when": "activeCustomEditorId == pd4git.patch" },
-        { "command": "pd4git.diff", "group": "navigation", "when": "isInDiffEditor && resourceExtname =~ /^[.](pd|maxpat|maxhelp|gendsp)$/i" }
+        { "command": "patcherview.diff", "group": "navigation", "when": "activeCustomEditorId == patcherview.patch" },
+        { "command": "patcherview.diff", "group": "navigation", "when": "isInDiffEditor && resourceExtname =~ /^[.](pd|maxpat|maxhelp|gendsp)$/i" }
       ]
     }
   },

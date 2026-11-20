@@ -41,7 +41,7 @@ const IO_FN = {
 const CONTROL_OUT = new Set(['snapshot~', 'env~', 'bonk~', 'sigmund~', 'fiddle~', 'threshold~', 'tabplay~', 'readsf~']);
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const COMMA = 'pd4git_comma', COMMA_RE = / ?pd4git_comma/g;
+const COMMA = 'patcherview_comma', COMMA_RE = / ?patcherview_comma/g;
 const unescape = (s) => String(s).replace(/\\(.)/g, '$1');
 const blank = (s) => !s || s === 'empty' || s === '-';
 
@@ -74,7 +74,7 @@ export function fontSize(text) {
 export function parsePatch(text) {
   // the parser treats an escaped "\," as the ", f N" suffix separator; hide it from it
   const r = parse(text.replace(/\\,/g, COMMA));
-  if (r.status !== 0) throw new Error('pd4git: cannot parse patch');
+  if (r.status !== 0) throw new Error('PatcherView: cannot parse patch');
   r.pd.fontSize = fontSize(text);
   return r.pd;
 }

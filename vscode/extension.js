@@ -12,9 +12,9 @@ function setup(context, webview, uri, onReady, onText = () => vscode.commands.ex
 <link rel="stylesheet" href="${src('webview.css')}">
 <style>
 body { padding: 0; }
-.pd4git { --borderColor-default: var(--vscode-panel-border); border: 0; border-radius: 0; margin: 0; }
-.pd4git-bar { position: sticky; top: 0; z-index: 1; background: var(--vscode-editor-background); color: var(--vscode-foreground); }
-.pd4git-view { max-height: none; min-height: calc(100vh - 50px); }
+.patcherview { --borderColor-default: var(--vscode-panel-border); border: 0; border-radius: 0; margin: 0; }
+.patcherview-bar { position: sticky; top: 0; z-index: 1; background: var(--vscode-editor-background); color: var(--vscode-foreground); }
+.patcherview-view { max-height: none; min-height: calc(100vh - 50px); }
 </style></head><body><script src="${src('webview.js')}"></script></body></html>`;
   const post = (msg) => {
     const state = Object.fromEntries(STATE.map((k) => [k, context.globalState.get(k)]));
@@ -44,7 +44,7 @@ async function diff(context) {
     else return;
     await showDiff(context, a, b);
   } catch (e) {
-    vscode.window.showErrorMessage(`pd4git: ${e.message}`);
+    vscode.window.showErrorMessage(`PatcherView: ${e.message}`);
   }
 }
 
@@ -55,7 +55,7 @@ const swapping = new Set();
 
 async function showDiff(context, a, b) {
   const [old, neu] = await Promise.all([read(a), read(b)]);
-  const panel = vscode.window.createWebviewPanel('pd4git.diff', `${b.path.split('/').pop()} (patch diff)`, vscode.ViewColumn.Active);
+  const panel = vscode.window.createWebviewPanel('patcherview.diff', `${b.path.split('/').pop()} (patch diff)`, vscode.ViewColumn.Active);
   const toText = () => { keepText.add(diffKey(a, b)); vscode.commands.executeCommand('vscode.diff', a, b, `${b.path.split('/').pop()} (text diff)`); };
   panel.onDidDispose(setup(context, panel.webview, b, (post) => post({ old, new: neu }), toText).dispose);
 }
@@ -66,17 +66,17 @@ function swapDiffs(context, { opened, changed }) {
     const { input } = tab;
     if (!(input instanceof vscode.TabInputTextDiff) || !PATCH.test(input.modified.path)) continue;
     const key = diffKey(input.original, input.modified);
-    if (swapping.has(key) || keepText.has(key) || !vscode.workspace.getConfiguration('pd4git').get('diffByDefault')) continue;
+    if (swapping.has(key) || keepText.has(key) || !vscode.workspace.getConfiguration('patcherview').get('diffByDefault')) continue;
     swapping.add(key);
     vscode.window.tabGroups.close(tab).then(() => showDiff(context, input.original, input.modified))
-      .catch((e) => vscode.window.showErrorMessage(`pd4git: ${e.message}`))
+      .catch((e) => vscode.window.showErrorMessage(`PatcherView: ${e.message}`))
       .finally(() => swapping.delete(key));
   }
 }
 
 exports.activate = (context) => {
   context.subscriptions.push(
-    vscode.window.registerCustomEditorProvider('pd4git.patch', {
+    vscode.window.registerCustomEditorProvider('patcherview.patch', {
       resolveCustomTextEditor(document, panel) {
         let post;
         const subs = [
@@ -86,7 +86,7 @@ exports.activate = (context) => {
         panel.onDidDispose(() => subs.forEach((s) => s.dispose()));
       },
     }, { webviewOptions: { retainContextWhenHidden: true } }),
-    vscode.commands.registerCommand('pd4git.diff', () => diff(context)),
+    vscode.commands.registerCommand('patcherview.diff', () => diff(context)),
     vscode.window.tabGroups.onDidChangeTabs((e) => swapDiffs(context, e)),
   );
 };

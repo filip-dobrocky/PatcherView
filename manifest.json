@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "pd4git",
+  "name": "PatcherView",
   "version": "0.1.1",
   "description": "Shows Pure Data and Max patches as graphs on GitHub, GitLab and Codeberg.",
   "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
@@ -15,7 +15,7 @@
     }
   ],
   "firefox:browser_specific_settings": {
-    "gecko": { "id": "pd4git@pd4git", "strict_min_version": "140.0", "data_collection_permissions": { "required": ["none"] } },
+    "gecko": { "id": "patcherview@patcherview", "strict_min_version": "140.0", "data_collection_permissions": { "required": ["none"] } },
     "gecko_android": { "strict_min_version": "142.0" }
   }
 }

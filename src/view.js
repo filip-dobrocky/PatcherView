@@ -3,14 +3,14 @@
 export function mount(box, { root, draw, name, label, kind, store, codeView, onText }) {
   const stack = [root];
   let zoom = 1, style = store.get('style-' + kind) || kind;
-  box.innerHTML = `<div class="pd4git-bar">
+  box.innerHTML = `<div class="patcherview-bar">
     <button data-mode="patch">${label}</button><button data-mode="text">Text</button>
-    <span class="pd4git-crumbs"></span><span class="pd4git-spacer"></span>
+    <span class="patcherview-crumbs"></span><span class="patcherview-spacer"></span>
     <button data-style="pd" title="Draw like Pure Data">Pd</button><button data-style="max" title="Draw like Max">Max</button>
     <button data-zoom="0.8" title="Zoom out">−</button><button data-zoom="1.25" title="Zoom in">+</button>
-  </div><div class="pd4git-view"></div>`;
-  const view = box.querySelector('.pd4git-view');
-  const crumbs = box.querySelector('.pd4git-crumbs');
+  </div><div class="patcherview-view"></div>`;
+  const view = box.querySelector('.patcherview-view');
+  const crumbs = box.querySelector('.patcherview-crumbs');
 
   const setMode = (mode) => {
     if (!codeView) return mode === 'text' ? onText?.() : null;

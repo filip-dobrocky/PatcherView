@@ -1,4 +1,4 @@
-.pd4git {
+.patcherview {
   --pd-fg: #000;
   --pd-bg: #fff;
   --pd-box: #fff;
@@ -15,7 +15,7 @@
   margin-bottom: 16px;
 }
 /* Max 9 default theme (resources/interfaces/themes/default.maxtheme styledefaults) */
-.pd4git[data-style="max"] {
+.patcherview[data-style="max"] {
   --pd-fg: #d9d9d9;
   --pd-bg: #3c3c3c;
   --pd-box: #2c2c2c;
@@ -29,8 +29,8 @@
   --pd-panel: #2c2c2c;
 }
 /* patch colors are authored against Pd's white canvas, so the view stays light in dark themes */
-.pd4git-view { background: var(--pd-bg); color: var(--pd-fg); }
-.pd4git-bar {
+.patcherview-view { background: var(--pd-bg); color: var(--pd-fg); }
+.patcherview-bar {
   display: flex;
   gap: 4px;
   align-items: center;
@@ -38,7 +38,7 @@
   border-bottom: 1px solid var(--borderColor-default, #d0d7de);
   font: 12px system-ui, sans-serif;
 }
-.pd4git-bar button {
+.patcherview-bar button {
   font: inherit;
   padding: 2px 8px;
   border: 1px solid var(--borderColor-default, #d0d7de);
@@ -47,11 +47,11 @@
   color: inherit;
   cursor: pointer;
 }
-.pd4git-bar button[aria-pressed="true"] { font-weight: 600; background: rgba(128, 128, 128, .2); }
-.pd4git-bar .pd4git-crumbs { margin-left: 12px; }
-.pd4git-bar .pd4git-crumbs a { cursor: pointer; text-decoration: underline; }
-.pd4git-bar .pd4git-spacer { flex: 1; }
-.pd4git-view { overflow: auto; max-height: 80vh; padding: 8px; }
+.patcherview-bar button[aria-pressed="true"] { font-weight: 600; background: rgba(128, 128, 128, .2); }
+.patcherview-bar .patcherview-crumbs { margin-left: 12px; }
+.patcherview-bar .patcherview-crumbs a { cursor: pointer; text-decoration: underline; }
+.patcherview-bar .patcherview-spacer { flex: 1; }
+.patcherview-view { overflow: auto; max-height: 80vh; padding: 8px; }
 
 .pd-patch { font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; display: block; }
 [data-style="max"] .pd-patch { font-family: Arial, Helvetica, sans-serif; }

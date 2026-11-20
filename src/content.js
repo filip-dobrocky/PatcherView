@@ -68,8 +68,8 @@ const HOSTS = [
 ];
 
 const store = {
-  get: (k) => { try { return localStorage.getItem('pd4git-' + k); } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem('pd4git-' + k, v); } catch {} },
+  get: (k) => { try { return localStorage.getItem('patcherview-' + k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem('patcherview-' + k, v); } catch {} },
 };
 
 // Self-hosted instances (options page): pick the forge whose blob marker comes first in the path,
@@ -104,7 +104,7 @@ function check() {
   const d = found.path === pathname ? found.d : null;
   const key = d ? `${d.base}..${d.head}` : h && format(pathname) && pathname.includes(h.blob) ? pathname : '';
 
-  for (const old of document.querySelectorAll('.pd4git')) {
+  for (const old of document.querySelectorAll('.patcherview')) {
     if (old.dataset.key === key) continue;
     old.nextElementSibling?.style.removeProperty('display');
     old.remove();
@@ -112,7 +112,7 @@ function check() {
   if (!key) return;
   if (d) return checkDiff(h, d, key);
   const view = document.querySelector(h.view);
-  if (!view || view.previousElementSibling?.classList.contains('pd4git')) return;
+  if (!view || view.previousElementSibling?.classList.contains('patcherview')) return;
 
   if (pending?.key !== key) pending = { key, text: get(location.origin + pathname.replace(h.blob, h.raw)) };
   const box = newBox(key);
@@ -137,7 +137,7 @@ function checkDiff(h, d, key) {
   const { files } = pending;
   files.then((list) => list.forEach(async (f) => {
     const c = await h.file(f.path);
-    if (pending?.files !== files || !c?.children[1] || c.querySelector(':scope > .pd4git')) return;
+    if (pending?.files !== files || !c?.children[1] || c.querySelector(':scope > .patcherview')) return;
     const box = newBox(key);
     c.firstElementChild.after(box);
     f.load().then(([a, b]) => {
@@ -150,14 +150,14 @@ function checkDiff(h, d, key) {
 
 function newBox(key) {
   const box = document.createElement('div');
-  box.className = 'pd4git';
+  box.className = 'patcherview';
   box.dataset.key = key;
   return box;
 }
 
 function fail(box, e) {
-  box.textContent = `pd4git: couldn't render this patch (${e.message})`;
-  box.classList.add('pd4git-error');
+  box.textContent = `PatcherView: couldn't render this patch (${e.message})`;
+  box.classList.add('patcherview-error');
 }
 
 new MutationObserver(check).observe(document.body, { childList: true, subtree: true });

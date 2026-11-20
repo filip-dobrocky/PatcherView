@@ -1,8 +1,25 @@
-# pd4git
+# PatcherView
 
-Browser extension (Chrome + Firefox) that shows Pure Data `.pd` and Max (`.maxpat`, `.maxhelp`, `.gendsp`, `.amxd`) patches as graphs on GitHub, gitlab.com and Codeberg file pages. A **Patch | Text** toggle switches back to the source view, and **Pd | Max** picks the drawing style (Max draws like Max 9's default dark theme). Both choices are remembered, the style separately for Pd and Max files. Click a subpatch to open it.
+Shows Pure Data `.pd` and Max (`.maxpat`, `.maxhelp`, `.gendsp`, `.amxd`) patches as graphs instead of text, and changes to them as one **Diff** canvas: added objects and cords in green, edited ones in amber (dashed if only moved), removed ones as red ghosts. Objects are matched by text, cords and position, so the renumbered `#X connect` lines that clutter text diffs don't show up as changes.
 
-On commit and pull/merge request pages, changed patches get a **Diff** view: one canvas with added objects and cords in green, edited ones in amber (dashed if only moved), removed ones as red ghosts. Objects are matched by text, cords and position, so the renumbered `#X connect` lines that clutter text diffs don't show up as changes.
+One renderer, two front ends:
+- **VS Code extension** for local files, Source Control and commit history.
+- **Browser extension** (Chrome + Firefox) for GitHub, GitLab and Codeberg file, commit and pull/merge request pages.
+
+**Pd | Max** picks the drawing style (Max draws like Max 9's default dark theme), remembered separately for Pd and Max files. Click a subpatch to open it.
+
+## VS Code
+`.pd`, `.maxpat`, `.maxhelp` and `.gendsp` files open as a patch (**Text** reopens the text editor). Changes opened from Source Control, Timeline or a commit compare show as one diff canvas (**Text** switches to the text diff; turn off with the `patcherview.diffByDefault` setting). The **Patch Diff** title button compares the open patch with HEAD.
+
+```bash
+cd vscode
+npm install
+npm run build        # dist/webview.js + .css
+npm run package      # patcher-view-<version>.vsix
+```
+
+## Browser
+On file pages a **Patch | Text** toggle switches back to the source view; the choice is remembered. Commit and pull/merge request pages get the **Diff** view for changed patches.
 
 Self-hosted GitLab, Forgejo/Gitea or GitHub Enterprise: add the site on the extension's options page. The browser asks for permission for that site only.
 
@@ -15,16 +32,6 @@ npm run build        # dist/chrome, dist/firefox + zips
 ```
 
 Requires Node ≥ 22.12 (extension.js).
-
-## VS Code
-`vscode/` is a VS Code extension using the same renderer: `.pd`, `.maxpat`, `.maxhelp` and `.gendsp` files open as a patch (**Text** reopens the text editor). Changes opened from Source Control, Timeline or a commit compare show as one diff canvas (**Text** switches to the text diff; turn off with the `pd4git.diffByDefault` setting). The **Patch Diff** title button compares the open patch with HEAD.
-
-```bash
-cd vscode
-npm install
-npm run build        # dist/webview.js + .css
-npm run package      # pd4git-<version>.vsix
-```
 
 ## Known limits
 - Inlet/outlet counts come from a small table of vanilla objects in `src/pd.js`. Abstractions and externals only show the iolets that are connected.
