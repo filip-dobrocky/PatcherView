@@ -3,8 +3,9 @@
   "displayName": "PatcherView",
   "description": "Shows Pure Data and Max patches as graphs, and changes to them as a patch diff.",
   "version": "0.1.2",
-  "publisher": "patcherview",
+  "publisher": "FilipDobrocky",
   "license": "GPL-3.0-or-later",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/filip-dobrocky/PatcherView",
