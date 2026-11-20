@@ -16,6 +16,16 @@ npm run build        # dist/chrome, dist/firefox + zips
 
 Requires Node ≥ 22.12 (extension.js).
 
+## VS Code
+`vscode/` is a VS Code extension using the same renderer: `.pd`, `.maxpat`, `.maxhelp` and `.gendsp` files open as a patch (**Text** reopens the text editor). Changes opened from Source Control, Timeline or a commit compare show as one diff canvas (**Text** switches to the text diff; turn off with the `pd4git.diffByDefault` setting). The **Patch Diff** title button compares the open patch with HEAD.
+
+```bash
+cd vscode
+npm install
+npm run build        # dist/webview.js + .css
+npm run package      # pd4git-<version>.vsix
+```
+
 ## Known limits
 - Inlet/outlet counts come from a small table of vanilla objects in `src/pd.js`. Abstractions and externals only show the iolets that are connected.
 - Graph-on-parent subpatches and arrays render as a labelled frame. Array data is plotted assuming a -1..1 range.

@@ -3,3 +3,4 @@ dist/
 
 # Extension.js local session state
 .extension-js
+*.vsix

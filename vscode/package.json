@@ -1,0 +1,50 @@
+{
+  "name": "pd4git",
+  "displayName": "pd4git",
+  "description": "Shows Pure Data and Max patches as graphs, and changes to them as a patch diff.",
+  "version": "0.1.1",
+  "publisher": "pd4git",
+  "license": "GPL-3.0-or-later",
+  "repository": { "type": "git", "url": "https://github.com/filip-dobrocky/pd4git", "directory": "vscode" },
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Visualization"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "browser": "./extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "pd4git.patch",
+        "displayName": "pd4git Patch",
+        "selector": [{ "filenamePattern": "*.pd" }, { "filenamePattern": "*.maxpat" }, { "filenamePattern": "*.maxhelp" }, { "filenamePattern": "*.gendsp" }],
+        "priority": "default"
+      }
+    ],
+    "configuration": {
+      "title": "pd4git",
+      "properties": {
+        "pd4git.diffByDefault": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open diffs of patches (Source Control, Timeline, commit compare) as one patch diff canvas instead of two patches side by side."
+        }
+      }
+    },
+    "commands": [{ "command": "pd4git.diff", "title": "Patch Diff", "category": "pd4git", "icon": "$(diff)" }],
+    "menus": {
+      "editor/title": [
+        { "command": "pd4git.diff", "group": "navigation", "when": "activeCustomEditorId == pd4git.patch" },
+        { "command": "pd4git.diff", "group": "navigation", "when": "isInDiffEditor && resourceExtname =~ /^[.](pd|maxpat|maxhelp|gendsp)$/i" }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "esbuild webview.js --bundle --outdir=dist",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package --skip-license"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "3.6.2",
+    "esbuild": "0.25.10"
+  }
+}

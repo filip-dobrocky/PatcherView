@@ -1,6 +1,7 @@
 import { parsePatch, render, patchName, diffPatches, renderDiff } from './pd.js';
 import { parseMaxPatch } from './max.js';
 import { diffFiles } from './udiff.js';
+import { mount } from './view.js';
 
 const hashes = new Map();
 const hash = (alg, s) => {
@@ -118,7 +119,7 @@ function check() {
   view.before(box);
   pending.text.then((text) => {
     const [, parse, , kind] = format(pathname), pd = parse(text);
-    mount(box, view, pd.rootPatchId, (id, style) => render(pd, id, style), (id) => patchName(pd, id), 'Patch', kind);
+    mount(box, { store, codeView: view, root: pd.rootPatchId, draw: (id, style) => render(pd, id, style), name: (id) => patchName(pd, id), label: 'Patch', kind });
   }).catch((e) => fail(box, e));
 }
 
@@ -142,7 +143,7 @@ function checkDiff(h, d, key) {
     f.load().then(([a, b]) => {
       const o = f.parse(a), n = f.parse(b), diff = diffPatches(o, n);
       const name = (id) => (o.patches[id] ? patchName(o, id) : patchName(n, id));
-      mount(box, box.nextElementSibling, n.rootPatchId, (id, style) => renderDiff(o, n, diff, id, style), name, 'Diff', f.kind);
+      mount(box, { store, codeView: box.nextElementSibling, root: n.rootPatchId, draw: (id, style) => renderDiff(o, n, diff, id, style), name, label: 'Diff', kind: f.kind });
     }).catch((e) => fail(box, e));
   })).catch(() => {});
 }
@@ -157,56 +158,6 @@ function newBox(key) {
 function fail(box, e) {
   box.textContent = `pd4git: couldn't render this patch (${e.message})`;
   box.classList.add('pd4git-error');
-}
-
-// kind 'pd' | 'max': each remembers its own drawing style, defaulting to its native one
-function mount(box, codeView, root, draw, name, label, kind) {
-  const stack = [root];
-  let zoom = 1, style = store.get('style-' + kind) || kind;
-  box.innerHTML = `<div class="pd4git-bar">
-    <button data-mode="patch">${label}</button><button data-mode="text">Text</button>
-    <span class="pd4git-crumbs"></span><span class="pd4git-spacer"></span>
-    <button data-style="pd" title="Draw like Pure Data">Pd</button><button data-style="max" title="Draw like Max">Max</button>
-    <button data-zoom="0.8" title="Zoom out">−</button><button data-zoom="1.25" title="Zoom in">+</button>
-  </div><div class="pd4git-view"></div>`;
-  const view = box.querySelector('.pd4git-view');
-  const crumbs = box.querySelector('.pd4git-crumbs');
-
-  const setMode = (mode) => {
-    store.set('mode', mode);
-    for (const b of box.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', b.dataset.mode === mode);
-    view.style.display = mode === 'patch' ? '' : 'none';
-    crumbs.style.display = mode === 'patch' ? '' : 'none';
-    codeView.style.display = mode === 'patch' ? 'none' : '';
-  };
-  const redraw = () => {
-    box.dataset.style = style;
-    for (const b of box.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', b.dataset.style === style);
-    view.innerHTML = draw(stack.at(-1), style);
-    const svg = view.firstElementChild;
-    svg.style.width = svg.getAttribute('width') * zoom + 'px';
-    svg.style.height = svg.getAttribute('height') * zoom + 'px';
-    crumbs.replaceChildren(...stack.flatMap((id, i) => {
-      const a = document.createElement(i < stack.length - 1 ? 'a' : 'span');
-      a.textContent = i ? name(id) : 'main';
-      a.dataset.depth = i;
-      return i ? [' / ', a] : [a];
-    }));
-  };
-
-  box.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-mode], button[data-style], [data-zoom], a[data-depth], [data-patch]');
-    if (!t) return;
-    if (t.dataset.mode) return setMode(t.dataset.mode);
-    if (t.dataset.style) store.set('style-' + kind, (style = t.dataset.style));
-    else if (t.dataset.zoom) zoom *= +t.dataset.zoom;
-    else if (t.dataset.depth) stack.length = +t.dataset.depth + 1;
-    else stack.push(t.dataset.patch);
-    redraw();
-  });
-
-  redraw();
-  setMode(store.get('mode') || 'patch');
 }
 
 new MutationObserver(check).observe(document.body, { childList: true, subtree: true });
