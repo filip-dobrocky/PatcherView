@@ -50,7 +50,7 @@ function displayText(tokens) {
   return tokens.map(unescape).join(' ').replace(COMMA_RE, ',').replace(/ ?; ?/g, ';\n').replace(/^\n|\n$/g, '');
 }
 
-function wrap(text, maxChars) {
+export function wrap(text, maxChars) {
   const out = [];
   for (const para of text.split('\n')) {
     let line = '';
@@ -128,6 +128,7 @@ function objBox(base, tokens, width, cw, lh, inlets, outlets, shape) {
 const ioX = (b, i, n) => b.x + (n > 1 ? ((b.w - IOWIDTH) * i) / (n - 1) : 0);
 
 function isSignalOut(pd, n, outlet) {
+  if (n.outtypes) return /signal/.test(n.outtypes[outlet] ?? '');
   if (n.nodeClass === 'subpatch') {
     const sub = pd.patches[n.patchId];
     return sub.nodes[sub.outlets[outlet]]?.type === 'outlet~';
@@ -205,7 +206,7 @@ function drawPatch(pd, patchId, mark = {}) {
   const boxes = {};
   for (const n of Object.values(patch.nodes)) {
     if (n.nodeClass === 'array') continue;
-    boxes[n.id] = layoutNode(pd, patch, n, metrics);
+    boxes[n.id] = n.box ? { ...n.box } : layoutNode(pd, patch, n, metrics);
   }
   for (const c of patch.connections) {
     const s = boxes[c.source.nodeId], t = boxes[c.sink.nodeId];
@@ -215,7 +216,7 @@ function drawPatch(pd, patchId, mark = {}) {
 
   const parts = [], drawn = [];
   // canvases go underneath everything else, like in Pd
-  const ordered = Object.values(patch.nodes).filter((n) => boxes[n.id]).sort((a, b) => (b.type === 'cnv') - (a.type === 'cnv'));
+  const ordered = Object.values(patch.nodes).filter((n) => boxes[n.id]).sort((a, b) => (boxes[b.id].shape === 'cnv') - (boxes[a.id].shape === 'cnv'));
   for (const n of ordered) {
     const cls = nodeCls(n.id);
     if (cls === null) continue;
@@ -239,17 +240,17 @@ function drawPatch(pd, patchId, mark = {}) {
   return { parts, drawn };
 }
 
-function svg(drawn, parts, fontSize) {
+function svg(drawn, parts, pd) {
   const pad = 10;
   const minX = Math.min(0, ...drawn.map((b) => b.x)) - pad, minY = Math.min(0, ...drawn.map((b) => b.y - (b.shape === 'gop' ? 15 : 0))) - pad;
   const maxX = Math.max(100, ...drawn.map((b) => b.x + b.w + 5)) + pad, maxY = Math.max(50, ...drawn.map((b) => b.y + b.h)) + pad;
   const w = maxX - minX, h = maxY - minY;
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="pd-patch" viewBox="${minX} ${minY} ${w} ${h}" width="${w}" height="${h}" font-size="${fontSize || 10}">${parts.join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="pd-patch${pd.max ? ' pd-max' : ''}" viewBox="${minX} ${minY} ${w} ${h}" width="${w}" height="${h}" font-size="${pd.fontSize || 10}">${parts.join('')}</svg>`;
 }
 
 export function render(pd, patchId = pd.rootPatchId) {
   const { parts, drawn } = drawPatch(pd, patchId);
-  return svg(drawn, parts, pd.fontSize);
+  return svg(drawn, parts, pd);
 }
 
 const KINDS = new Set(['msg', 'text', 'floatatom', 'symbolatom', 'listbox', 'bng', 'tgl', 'hsl', 'vsl', 'hradio', 'vradio', 'nbx', 'vu', 'cnv']);
@@ -372,7 +373,7 @@ export function renderDiff(oldPd, newPd, diff, key) {
     node: (id) => e.nodes.get(id) ?? '',
     cord: (i) => (e.cords.has(i) ? 'pd-add' : ''),
   });
-  return svg([...a.drawn, ...b.drawn], [...a.parts, ...b.parts], newPd.fontSize);
+  return svg([...a.drawn, ...b.drawn], [...a.parts, ...b.parts], newPd);
 }
 
 // Breadcrumb helper: name of a subpatch for display.

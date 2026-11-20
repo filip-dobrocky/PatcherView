@@ -1,4 +1,5 @@
 import { parsePatch, render, patchName, diffPatches, renderDiff } from './pd.js';
+import { parseMaxPatch } from './max.js';
 import { diffFiles } from './udiff.js';
 
 const hashes = new Map();
@@ -77,7 +78,12 @@ const guessHost = (p) => HOSTS.filter((h) => p.includes(h.blob)).sort((a, b) => 
   ?? (p.includes('/-/') ? GITLAB : document.querySelector('.diff-file-box') ? GITEA : GITHUB);
 
 const get = (url) => fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status))));
-const EMPTY = '#N canvas 0 50 450 300 10;\n';
+// [path pattern, parser, empty patch for an added/deleted file]
+const FORMATS = [
+  [/\.pd$/i, parsePatch, '#N canvas 0 50 450 300 10;\n'],
+  [/\.(maxpat|maxhelp|gendsp|amxd)$/i, parseMaxPatch, '{"patcher":{}}'],
+];
+const format = (path) => FORMATS.find(([re]) => re.test(path));
 
 let pending = null; // { key, text | files }
 let found = {}; // diff refs of the current page, so they aren't looked up on every mutation
@@ -95,7 +101,7 @@ function check() {
     }, () => {});
   }
   const d = found.path === pathname ? found.d : null;
-  const key = d ? `${d.base}..${d.head}` : h && pathname.endsWith('.pd') && pathname.includes(h.blob) ? pathname : '';
+  const key = d ? `${d.base}..${d.head}` : h && format(pathname) && pathname.includes(h.blob) ? pathname : '';
 
   for (const old of document.querySelectorAll('.pd4git')) {
     if (old.dataset.key === key) continue;
@@ -111,20 +117,20 @@ function check() {
   const box = newBox(key);
   view.before(box);
   pending.text.then((text) => {
-    const pd = parsePatch(text);
+    const pd = format(pathname)[1](text);
     mount(box, view, pd.rootPatchId, (id) => render(pd, id), (id) => patchName(pd, id), 'Patch');
   }).catch((e) => fail(box, e));
 }
 
 function checkDiff(h, d, key) {
   if (pending?.key !== key) {
-    const raw = (ref, path) => (path ? get(`${location.origin}${d.root}${h.raw}${ref}/${path.split('/').map(encodeURIComponent).join('/')}`) : EMPTY);
+    const raw = (ref, path, empty) => (path ? get(`${location.origin}${d.root}${h.raw}${ref}/${path.split('/').map(encodeURIComponent).join('/')}`) : empty);
     pending = {
       key,
-      files: get(d.url).then((t) => diffFiles(t).filter((f) => (f.newPath ?? f.oldPath).endsWith('.pd')).map((f) => ({
-        path: f.newPath ?? f.oldPath,
-        load: () => (f.texts ??= Promise.all([raw(d.base, f.oldPath), raw(d.head, f.newPath)])),
-      }))),
+      files: get(d.url).then((t) => diffFiles(t).flatMap((f) => {
+        const path = f.newPath ?? f.oldPath, fmt = format(path);
+        return fmt ? [{ path, parse: fmt[1], load: () => (f.texts ??= Promise.all([raw(d.base, f.oldPath, fmt[2]), raw(d.head, f.newPath, fmt[2])])) }] : [];
+      })),
     };
   }
   const { files } = pending;
@@ -134,7 +140,7 @@ function checkDiff(h, d, key) {
     const box = newBox(key);
     c.firstElementChild.after(box);
     f.load().then(([a, b]) => {
-      const o = parsePatch(a), n = parsePatch(b), diff = diffPatches(o, n);
+      const o = f.parse(a), n = f.parse(b), diff = diffPatches(o, n);
       const name = (id) => (o.patches[id] ? patchName(o, id) : patchName(n, id));
       mount(box, box.nextElementSibling, n.rootPatchId, (id) => renderDiff(o, n, diff, id), name, 'Diff');
     }).catch((e) => fail(box, e));
