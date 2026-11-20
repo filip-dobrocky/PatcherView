@@ -65,6 +65,8 @@ test('interface objects, cord midpoints and the Max drawing style', () => {
   assert.match(pdStyle, /points="[\d.]+ [\d.]+ 60 30 60 5 /, 'cord goes through its midpoints');
   assert.doesNotMatch(pdStyle, /rgba\(/, 'box colours only in Max style');
   assert.match(maxStyle, /fill="rgba\(255,0,0,1\)"/);
+  assert.match(maxStyle, /<polyline class="pd-cord" points="[\d.]+ [\d.]+ 60 30 60 5 /, 'segmented cord stays segmented in Max view');
+  assert.match(render(parseMaxPatch(JSON.stringify(MAX)), undefined, 'max'), /<path class="pd-cord pd-sig" d="M[\d.,]+C/, 'other cords curve');
   assert.match(maxStyle, /class="pd-box pd-msg" rx="3" fill="rgba\(0,0,255,1\)"/);
 });
 

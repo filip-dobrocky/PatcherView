@@ -243,7 +243,12 @@ function drawPatch(pd, patchId, mark = {}, style = 'pd') {
     const sig = isSignalOut(pd, patch.nodes[c.source.nodeId], c.source.portletId);
     const x1 = ioX(s, c.source.portletId, s.outlets) + IOWIDTH / 2, y1 = s.y + s.h;
     const x2 = ioX(t, c.sink.portletId, t.inlets) + IOWIDTH / 2, y2 = t.y;
-    parts.push(`<polyline class="pd-cord${sig ? ' pd-sig' : ''}${cls ? ' ' + cls : ''}" points="${[x1, y1, ...(c.points ?? []), x2, y2].join(' ')}"/>`);
+    const k = `class="pd-cord${sig ? ' pd-sig' : ''}${cls ? ' ' + cls : ''}"`;
+    // Max view: cords with saved midpoints are segmented, the rest curve (Max's default; the curve setting is a global preference, not in the file)
+    if (style === 'max' && !c.points?.length) {
+      const d = Math.min(40, Math.max(12, Math.hypot(x2 - x1, y2 - y1) * 0.25));
+      parts.push(`<path ${k} d="M${x1},${y1}C${x1},${y1 + d} ${x2},${y2 - d} ${x2},${y2}"/>`);
+    } else parts.push(`<polyline ${k} points="${[x1, y1, ...(c.points ?? []), x2, y2].join(' ')}"/>`);
   });
   return { parts, drawn };
 }
