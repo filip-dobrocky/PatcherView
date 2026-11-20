@@ -2,13 +2,23 @@
   "name": "patcher-view",
   "displayName": "PatcherView",
   "description": "Shows Pure Data and Max patches as graphs, and changes to them as a patch diff.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "patcherview",
   "license": "GPL-3.0-or-later",
-  "repository": { "type": "git", "url": "https://github.com/filip-dobrocky/PatcherView", "directory": "vscode" },
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Visualization"],
-  "activationEvents": ["onStartupFinished"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/filip-dobrocky/PatcherView",
+    "directory": "vscode"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./extension.js",
   "browser": "./extension.js",
   "contributes": {
@@ -16,7 +26,20 @@
       {
         "viewType": "patcherview.patch",
         "displayName": "PatcherView Patch",
-        "selector": [{ "filenamePattern": "*.pd" }, { "filenamePattern": "*.maxpat" }, { "filenamePattern": "*.maxhelp" }, { "filenamePattern": "*.gendsp" }],
+        "selector": [
+          {
+            "filenamePattern": "*.pd"
+          },
+          {
+            "filenamePattern": "*.maxpat"
+          },
+          {
+            "filenamePattern": "*.maxhelp"
+          },
+          {
+            "filenamePattern": "*.gendsp"
+          }
+        ],
         "priority": "default"
       }
     ],
@@ -30,11 +53,26 @@
         }
       }
     },
-    "commands": [{ "command": "patcherview.diff", "title": "Patch Diff", "category": "PatcherView", "icon": "$(diff)" }],
+    "commands": [
+      {
+        "command": "patcherview.diff",
+        "title": "Patch Diff",
+        "category": "PatcherView",
+        "icon": "$(diff)"
+      }
+    ],
     "menus": {
       "editor/title": [
-        { "command": "patcherview.diff", "group": "navigation", "when": "activeCustomEditorId == patcherview.patch" },
-        { "command": "patcherview.diff", "group": "navigation", "when": "isInDiffEditor && resourceExtname =~ /^[.](pd|maxpat|maxhelp|gendsp)$/i" }
+        {
+          "command": "patcherview.diff",
+          "group": "navigation",
+          "when": "activeCustomEditorId == patcherview.patch"
+        },
+        {
+          "command": "patcherview.diff",
+          "group": "navigation",
+          "when": "isInDiffEditor && resourceExtname =~ /^[.](pd|maxpat|maxhelp|gendsp)$/i"
+        }
       ]
     }
   },
