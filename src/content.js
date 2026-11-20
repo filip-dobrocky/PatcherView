@@ -78,10 +78,10 @@ const guessHost = (p) => HOSTS.filter((h) => p.includes(h.blob)).sort((a, b) => 
   ?? (p.includes('/-/') ? GITLAB : document.querySelector('.diff-file-box') ? GITEA : GITHUB);
 
 const get = (url) => fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status))));
-// [path pattern, parser, empty patch for an added/deleted file]
+// [path pattern, parser, empty patch for an added/deleted file, kind (default drawing style)]
 const FORMATS = [
-  [/\.pd$/i, parsePatch, '#N canvas 0 50 450 300 10;\n'],
-  [/\.(maxpat|maxhelp|gendsp|amxd)$/i, parseMaxPatch, '{"patcher":{}}'],
+  [/\.pd$/i, parsePatch, '#N canvas 0 50 450 300 10;\n', 'pd'],
+  [/\.(maxpat|maxhelp|gendsp|amxd)$/i, parseMaxPatch, '{"patcher":{}}', 'max'],
 ];
 const format = (path) => FORMATS.find(([re]) => re.test(path));
 
@@ -117,8 +117,8 @@ function check() {
   const box = newBox(key);
   view.before(box);
   pending.text.then((text) => {
-    const pd = format(pathname)[1](text);
-    mount(box, view, pd.rootPatchId, (id) => render(pd, id), (id) => patchName(pd, id), 'Patch');
+    const [, parse, , kind] = format(pathname), pd = parse(text);
+    mount(box, view, pd.rootPatchId, (id, style) => render(pd, id, style), (id) => patchName(pd, id), 'Patch', kind);
   }).catch((e) => fail(box, e));
 }
 
@@ -129,7 +129,7 @@ function checkDiff(h, d, key) {
       key,
       files: get(d.url).then((t) => diffFiles(t).flatMap((f) => {
         const path = f.newPath ?? f.oldPath, fmt = format(path);
-        return fmt ? [{ path, parse: fmt[1], load: () => (f.texts ??= Promise.all([raw(d.base, f.oldPath, fmt[2]), raw(d.head, f.newPath, fmt[2])])) }] : [];
+        return fmt ? [{ path, parse: fmt[1], kind: fmt[3], load: () => (f.texts ??= Promise.all([raw(d.base, f.oldPath, fmt[2]), raw(d.head, f.newPath, fmt[2])])) }] : [];
       })),
     };
   }
@@ -142,7 +142,7 @@ function checkDiff(h, d, key) {
     f.load().then(([a, b]) => {
       const o = f.parse(a), n = f.parse(b), diff = diffPatches(o, n);
       const name = (id) => (o.patches[id] ? patchName(o, id) : patchName(n, id));
-      mount(box, box.nextElementSibling, n.rootPatchId, (id) => renderDiff(o, n, diff, id), name, 'Diff');
+      mount(box, box.nextElementSibling, n.rootPatchId, (id, style) => renderDiff(o, n, diff, id, style), name, 'Diff', f.kind);
     }).catch((e) => fail(box, e));
   })).catch(() => {});
 }
@@ -159,12 +159,14 @@ function fail(box, e) {
   box.classList.add('pd4git-error');
 }
 
-function mount(box, codeView, root, draw, name, label) {
+// kind 'pd' | 'max': each remembers its own drawing style, defaulting to its native one
+function mount(box, codeView, root, draw, name, label, kind) {
   const stack = [root];
-  let zoom = 1;
+  let zoom = 1, style = store.get('style-' + kind) || kind;
   box.innerHTML = `<div class="pd4git-bar">
     <button data-mode="patch">${label}</button><button data-mode="text">Text</button>
     <span class="pd4git-crumbs"></span><span class="pd4git-spacer"></span>
+    <button data-style="pd" title="Draw like Pure Data">Pd</button><button data-style="max" title="Draw like Max">Max</button>
     <button data-zoom="0.8" title="Zoom out">−</button><button data-zoom="1.25" title="Zoom in">+</button>
   </div><div class="pd4git-view"></div>`;
   const view = box.querySelector('.pd4git-view');
@@ -178,7 +180,9 @@ function mount(box, codeView, root, draw, name, label) {
     codeView.style.display = mode === 'patch' ? 'none' : '';
   };
   const redraw = () => {
-    view.innerHTML = draw(stack.at(-1));
+    box.dataset.style = style;
+    for (const b of box.querySelectorAll('[data-style]')) b.setAttribute('aria-pressed', b.dataset.style === style);
+    view.innerHTML = draw(stack.at(-1), style);
     const svg = view.firstElementChild;
     svg.style.width = svg.getAttribute('width') * zoom + 'px';
     svg.style.height = svg.getAttribute('height') * zoom + 'px';
@@ -191,10 +195,11 @@ function mount(box, codeView, root, draw, name, label) {
   };
 
   box.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-mode], [data-zoom], a[data-depth], [data-patch]');
+    const t = e.target.closest('[data-mode], button[data-style], [data-zoom], a[data-depth], [data-patch]');
     if (!t) return;
     if (t.dataset.mode) return setMode(t.dataset.mode);
-    if (t.dataset.zoom) zoom *= +t.dataset.zoom;
+    if (t.dataset.style) store.set('style-' + kind, (style = t.dataset.style));
+    else if (t.dataset.zoom) zoom *= +t.dataset.zoom;
     else if (t.dataset.depth) stack.length = +t.dataset.depth + 1;
     else stack.push(t.dataset.patch);
     redraw();

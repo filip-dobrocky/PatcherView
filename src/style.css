@@ -1,11 +1,32 @@
 .pd4git {
   --pd-fg: #000;
   --pd-bg: #fff;
+  --pd-box: #fff;
+  --pd-msg: #fff;
+  --pd-frame: #000;
   --pd-comment: #000;
   --pd-io: #000;
+  --pd-cord: #000;
+  --pd-sig: #000;
+  --pd-acc: #000;
+  --pd-panel: #e0e0e0;
   border: 1px solid var(--borderColor-default, #d0d7de);
   border-radius: 6px;
   margin-bottom: 16px;
+}
+/* Max 9 default theme (resources/interfaces/themes/default.maxtheme styledefaults) */
+.pd4git[data-style="max"] {
+  --pd-fg: #d9d9d9;
+  --pd-bg: #3c3c3c;
+  --pd-box: #2c2c2c;
+  --pd-msg: #4a4a4a;
+  --pd-frame: #2c2c2c;
+  --pd-comment: #d9d9d9;
+  --pd-io: #a9a9a9;
+  --pd-cord: #727272;
+  --pd-sig: #d6dd6c;
+  --pd-acc: #9ebef3;
+  --pd-panel: #2c2c2c;
 }
 /* patch colors are authored against Pd's white canvas, so the view stays light in dark themes */
 .pd4git-view { background: var(--pd-bg); color: var(--pd-fg); }
@@ -33,24 +54,33 @@
 .pd4git-view { overflow: auto; max-height: 80vh; padding: 8px; }
 
 .pd-patch { font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; display: block; }
-.pd-patch.pd-max { font-family: Arial, Helvetica, sans-serif; }
+[data-style="max"] .pd-patch { font-family: Arial, Helvetica, sans-serif; }
 .pd-patch text { white-space: pre; }
 .pd-patch text:not([fill]) { fill: var(--pd-fg); }
 .pd-comment text { fill: var(--pd-comment); }
-.pd-box { fill: var(--pd-bg); stroke: var(--pd-fg); stroke-width: 1; }
-.pd-iem { stroke: var(--pd-fg); stroke-width: 1; }
-.pd-iem:not([fill]) { fill: var(--pd-bg); }
+.pd-box { fill: var(--pd-box); stroke: var(--pd-frame); stroke-width: 1; }
+.pd-box.pd-msg:not([fill]) { fill: var(--pd-msg); }
+.pd-iem { stroke: var(--pd-frame); stroke-width: 1; }
+.pd-iem:not([fill]) { fill: var(--pd-box); }
+.pd-iem.pd-keys:not([fill]) { fill: #f2f2f2; }
+.pd-panel:not([fill]) { fill: var(--pd-panel); }
 .pd-line { fill: none; }
 .pd-line:not([stroke]) { stroke: var(--pd-fg); }
+.pd-line.pd-acc:not([stroke]) { stroke: var(--pd-acc); }
+.pd-faint { opacity: .4; }
+.pd-accf { fill: var(--pd-acc); }
+.pd-accf.pd-black { fill: #222; }
 .pd-io { fill: var(--pd-io); }
-.pd-cord { stroke: var(--pd-fg); stroke-width: 1; }
-.pd-cord.pd-sig { stroke-width: 2; }
+.pd-cord { fill: none; stroke: var(--pd-cord); stroke-width: 1; }
+.pd-cord.pd-sig { stroke: var(--pd-sig); stroke-width: 2; }
+[data-style="max"] .pd-cord { stroke-width: 1.5; }
+[data-style="max"] .pd-cord.pd-sig { stroke-dasharray: 5 2; }
 .pd-sub { cursor: pointer; }
-.pd-sub:hover .pd-box { stroke-width: 2; }
+.pd-sub:hover .pd-box { stroke-width: 2; stroke: var(--pd-acc); }
 
 .pd-patch .pd-add .pd-box, .pd-patch .pd-add .pd-iem { stroke: #1a7f37; stroke-width: 2; fill: #dafbe1; }
-.pd-patch .pd-add text, .pd-patch .pd-cord.pd-add { fill: #1a7f37; stroke: #1a7f37; }
-.pd-patch .pd-add text { stroke: none; }
+.pd-patch .pd-add text { fill: #1a7f37; }
+.pd-patch .pd-cord.pd-add { stroke: #1a7f37; }
 .pd-patch .pd-mod .pd-box, .pd-patch .pd-mod .pd-iem { stroke: #bf8700; stroke-width: 2; fill: #fff8c5; }
 .pd-patch .pd-mod text, .pd-patch .pd-move .pd-comment text { fill: #9a6700; }
 .pd-patch .pd-move .pd-box, .pd-patch .pd-move .pd-iem { stroke: #bf8700; stroke-dasharray: 4 2; }

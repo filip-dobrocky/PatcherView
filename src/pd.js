@@ -137,56 +137,63 @@ function isSignalOut(pd, n, outlet) {
 }
 
 // Only plain #rrggbb colors pass; old-style numeric Pd colors fall back to the theme.
-const color = (c) => (/^#[0-9a-f]{6}$/i.test(c) ? c : null);
+// In Max style Pd's default iemgui colours (#fcfcfc body, black lines/labels) count as unset, so the theme shows.
+const color = (c, max) => (/^#[0-9a-f]{6}$/i.test(c) && !(max && /^#(fcfcfc|000000)$/i.test(c)) ? c : null);
 const attr = (name, v) => (v ? ` ${name}="${v}"` : '');
 
-function drawText(b, lines, [, lh]) {
-  return lines.map((l, i) => `<text x="${b.x + LMARGIN}" y="${b.y + TMARGIN + lh * i + lh * 0.75}">${esc(l)}</text>`).join('');
+function drawText(b, lines, [, lh], fill) {
+  return lines.map((l, i) => `<text x="${b.x + LMARGIN}" y="${b.y + TMARGIN + lh * i + lh * 0.75}"${attr('fill', fill)}>${esc(l)}</text>`).join('');
 }
 
-function drawLabel(n, b) {
+function drawLabel(n, b, max) {
   const L = n.layout;
   if (blank(L.label)) return '';
-  return `<text x="${b.x + (L.labelX ?? 0)}" y="${b.y + (L.labelY ?? 0)}" font-size="${+L.labelFontSize || 10}" dominant-baseline="middle"${attr('fill', color(L.labelColor))}>${esc(unescape(L.label))}</text>`;
+  return `<text x="${b.x + (L.labelX ?? 0)}" y="${b.y + (L.labelY ?? 0)}" font-size="${+L.labelFontSize || 10}" dominant-baseline="middle"${attr('fill', color(L.labelColor, max))}>${esc(unescape(L.label))}</text>`;
 }
 
-function drawNode(pd, n, b, metrics) {
+// style 'max' draws boxes the way Max does (rounded, its own message/number look); colours come from CSS.
+function drawNode(pd, n, b, metrics, style) {
+  if (b.draw) return b.draw(style);
   const { x, y, w, h } = b;
-  const R = (cls) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="${cls}"${cls === 'pd-iem' ? attr('fill', color(n.layout.bgColor)) : ''}/>`;
-  const fg = attr('stroke', color(n.layout.fgColor));
+  const max = style === 'max';
+  const R = (cls) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="${cls}"${max ? ' rx="3"' : ''}${cls === 'pd-iem' ? attr('fill', color(n.layout.bgColor, max)) : attr('fill', max && b.fill)}/>`;
+  const T = (bb = b) => drawText(bb, bb.lines, metrics, max && b.textFill);
+  const fg = attr('stroke', color(n.layout.fgColor, max));
   switch (b.shape) {
-    case 'text': return `<g class="pd-comment">${drawText(b, b.lines, metrics)}</g>`;
+    case 'text': return `<g class="pd-comment">${T()}</g>`;
     case 'msg': {
+      if (max) return `${R('pd-box pd-msg')}${T()}`;
       const c = Math.min(4, h / 4);
-      return `<polygon class="pd-box" points="${x},${y} ${x + w + c},${y} ${x + w},${y + c} ${x + w},${y + h - c} ${x + w + c},${y + h} ${x},${y + h}"/>${drawText(b, b.lines, metrics)}`;
+      return `<polygon class="pd-box pd-msg" points="${x},${y} ${x + w + c},${y} ${x + w},${y + c} ${x + w},${y + h - c} ${x + w + c},${y + h} ${x},${y + h}"/>${T()}`;
     }
     case 'atom': {
+      if (max) return `${R('pd-box')}<polygon class="pd-accf" points="${x + 3},${y + h / 2 - 4} ${x + 8},${y + h / 2} ${x + 3},${y + h / 2 + 4}"/>${T({ ...b, x: x + 8 })}${drawLabel(n, b, max)}`;
       const c = 4;
-      return `<polygon class="pd-box" points="${x},${y} ${x + w - c},${y} ${x + w},${y + c} ${x + w},${y + h} ${x},${y + h}"/>${drawText(b, b.lines, metrics)}${drawLabel(n, b)}`;
+      return `<polygon class="pd-box" points="${x},${y} ${x + w - c},${y} ${x + w},${y + c} ${x + w},${y + h} ${x},${y + h}"/>${T()}${drawLabel(n, b, max)}`;
     }
     case 'box': {
       const sub = n.nodeClass === 'subpatch' ? ` data-patch="${esc(n.patchId)}"` : '';
-      return `<g class="pd-obj${sub ? ' pd-sub' : ''}"${sub}>${R('pd-box')}${drawText(b, b.lines, metrics)}</g>`;
+      return `<g class="pd-obj${sub ? ' pd-sub' : ''}"${sub}>${R('pd-box')}${T()}</g>`;
     }
     case 'gop': {
       const plots = b.arrays.map((a) => plotArray(a, b)).join('');
       return `<g class="pd-sub" data-patch="${esc(n.patchId)}">${R('pd-box')}${plots}${b.label ? `<text x="${x + 2}" y="${y - 3}">${esc(b.label)}</text>` : ''}</g>`;
     }
-    case 'bng': return `${R('pd-iem')}<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2 - 1}" class="pd-line"${fg}/>${drawLabel(n, b)}`;
-    case 'tgl': return `${R('pd-iem')}${drawLabel(n, b)}`;
-    case 'hsl': return `${R('pd-iem')}<line x1="${x + 1}" y1="${y}" x2="${x + 1}" y2="${y + h}" class="pd-line" stroke-width="3"${fg}/>${drawLabel(n, b)}`;
-    case 'vsl': return `${R('pd-iem')}<line x1="${x}" y1="${y + h - 1}" x2="${x + w}" y2="${y + h - 1}" class="pd-line" stroke-width="3"${fg}/>${drawLabel(n, b)}`;
+    case 'bng': return `${R('pd-iem')}<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2 - 1}" class="pd-line"${fg}/>${drawLabel(n, b, max)}`;
+    case 'tgl': return `${R('pd-iem')}${drawLabel(n, b, max)}`;
+    case 'hsl': return `${R('pd-iem')}<line x1="${x + 1}" y1="${y}" x2="${x + 1}" y2="${y + h}" class="pd-line" stroke-width="3"${fg}/>${drawLabel(n, b, max)}`;
+    case 'vsl': return `${R('pd-iem')}<line x1="${x}" y1="${y + h - 1}" x2="${x + w}" y2="${y + h - 1}" class="pd-line" stroke-width="3"${fg}/>${drawLabel(n, b, max)}`;
     case 'hradio': case 'vradio': {
       const s = n.layout.size, cells = [];
       for (let i = 1; i < n.args[0]; i++) cells.push(b.shape === 'hradio' ? `<line x1="${x + i * s}" y1="${y}" x2="${x + i * s}" y2="${y + h}" class="pd-line"/>` : `<line x1="${x}" y1="${y + i * s}" x2="${x + w}" y2="${y + i * s}" class="pd-line"/>`);
-      return `${R('pd-iem')}${cells.join('')}${drawLabel(n, b)}`;
+      return `${R('pd-iem')}${cells.join('')}${drawLabel(n, b, max)}`;
     }
     case 'nbx': {
       const t = h / 2;
-      return `${R('pd-iem')}<polyline points="${x},${y} ${x + t},${y + t} ${x},${y + h}" class="pd-line"${fg}/><text x="${x + t + 2}" y="${y + h * 0.75}">0</text>${drawLabel(n, b)}`;
+      return `${R('pd-iem')}<polyline points="${x},${y} ${x + t},${y + t} ${x},${y + h}" class="pd-line"${fg}/><text x="${x + t + 2}" y="${y + h * 0.75}">0</text>${drawLabel(n, b, max)}`;
     }
-    case 'vu': return `${R('pd-iem')}${drawLabel(n, b)}`;
-    case 'cnv': return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${color(n.layout.bgColor) || '#e0e0e0'}"/>${drawLabel(n, b)}`;
+    case 'vu': return `${R('pd-iem')}${drawLabel(n, b, max)}`;
+    case 'cnv': return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${color(n.layout.bgColor) || '#e0e0e0'}"/>${drawLabel(n, b, max)}`;
   }
   return '';
 }
@@ -199,7 +206,7 @@ function plotArray(a, b) {
 }
 
 // mark.node(id) / mark.cord(i): extra class for that item, or null to lay it out without drawing it.
-function drawPatch(pd, patchId, mark = {}) {
+function drawPatch(pd, patchId, mark = {}, style = 'pd') {
   const patch = pd.patches[patchId];
   const metrics = FONTS[pd.fontSize || 10];
   const nodeCls = mark.node ?? (() => ''), cordCls = mark.cord ?? (() => '');
@@ -223,9 +230,10 @@ function drawPatch(pd, patchId, mark = {}) {
     const b = boxes[n.id];
     drawn.push(b);
     if (cls) parts.push(`<g class="${cls}">`);
-    parts.push(drawNode(pd, n, b, metrics));
-    for (let i = 0; i < b.inlets; i++) parts.push(`<rect class="pd-io" x="${ioX(b, i, b.inlets)}" y="${b.y}" width="${IOWIDTH}" height="${IOHEIGHT}"/>`);
-    for (let i = 0; i < b.outlets; i++) parts.push(`<rect class="pd-io" x="${ioX(b, i, b.outlets)}" y="${b.y + b.h - IOHEIGHT + 1}" width="${IOWIDTH}" height="${IOHEIGHT - 1}"/>`);
+    parts.push(drawNode(pd, n, b, metrics, style));
+    const rx = style === 'max' ? ' rx="1.5"' : '';
+    for (let i = 0; i < b.inlets; i++) parts.push(`<rect class="pd-io" x="${ioX(b, i, b.inlets)}" y="${b.y}" width="${IOWIDTH}" height="${IOHEIGHT}"${rx}/>`);
+    for (let i = 0; i < b.outlets; i++) parts.push(`<rect class="pd-io" x="${ioX(b, i, b.outlets)}" y="${b.y + b.h - IOHEIGHT + 1}" width="${IOWIDTH}" height="${IOHEIGHT - 1}"${rx}/>`);
     if (cls) parts.push('</g>');
   }
   patch.connections.forEach((c, ci) => {
@@ -235,7 +243,7 @@ function drawPatch(pd, patchId, mark = {}) {
     const sig = isSignalOut(pd, patch.nodes[c.source.nodeId], c.source.portletId);
     const x1 = ioX(s, c.source.portletId, s.outlets) + IOWIDTH / 2, y1 = s.y + s.h;
     const x2 = ioX(t, c.sink.portletId, t.inlets) + IOWIDTH / 2, y2 = t.y;
-    parts.push(`<line class="pd-cord${sig ? ' pd-sig' : ''}${cls ? ' ' + cls : ''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`);
+    parts.push(`<polyline class="pd-cord${sig ? ' pd-sig' : ''}${cls ? ' ' + cls : ''}" points="${[x1, y1, ...(c.points ?? []), x2, y2].join(' ')}"/>`);
   });
   return { parts, drawn };
 }
@@ -245,11 +253,11 @@ function svg(drawn, parts, pd) {
   const minX = Math.min(0, ...drawn.map((b) => b.x)) - pad, minY = Math.min(0, ...drawn.map((b) => b.y - (b.shape === 'gop' ? 15 : 0))) - pad;
   const maxX = Math.max(100, ...drawn.map((b) => b.x + b.w + 5)) + pad, maxY = Math.max(50, ...drawn.map((b) => b.y + b.h)) + pad;
   const w = maxX - minX, h = maxY - minY;
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="pd-patch${pd.max ? ' pd-max' : ''}" viewBox="${minX} ${minY} ${w} ${h}" width="${w}" height="${h}" font-size="${pd.fontSize || 10}">${parts.join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="pd-patch" viewBox="${minX} ${minY} ${w} ${h}" width="${w}" height="${h}" font-size="${pd.fontSize || 10}">${parts.join('')}</svg>`;
 }
 
-export function render(pd, patchId = pd.rootPatchId) {
-  const { parts, drawn } = drawPatch(pd, patchId);
+export function render(pd, patchId = pd.rootPatchId, style = 'pd') {
+  const { parts, drawn } = drawPatch(pd, patchId, {}, style);
   return svg(drawn, parts, pd);
 }
 
@@ -361,18 +369,18 @@ export function diffPatches(oldPd, newPd, oldId = oldPd.rootPatchId, newId = new
 }
 
 // Overlay: removed items from the old patch underneath, the new patch on top with changes marked.
-export function renderDiff(oldPd, newPd, diff, key) {
+export function renderDiff(oldPd, newPd, diff, key, style = 'pd') {
   const e = diff.get(key);
   const gone = e.newId === null;
   const none = { parts: [], drawn: [] };
   const a = e.oldId === null ? none : drawPatch(oldPd, e.oldId, {
     node: (id) => (gone || e.removed.has(id) ? 'pd-del' : null),
     cord: (i) => (gone || e.removedCords.has(i) ? 'pd-del' : null),
-  });
+  }, style);
   const b = gone ? none : drawPatch(newPd, e.newId, {
     node: (id) => e.nodes.get(id) ?? '',
     cord: (i) => (e.cords.has(i) ? 'pd-add' : ''),
-  });
+  }, style);
   return svg([...a.drawn, ...b.drawn], [...a.parts, ...b.parts], newPd);
 }
 
