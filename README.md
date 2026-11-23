@@ -1,6 +1,6 @@
 # PatcherView
 
-Shows Pure Data `.pd` and Max (`.maxpat`, `.maxhelp`, `.gendsp`, `.amxd`) patches as graphs instead of text, and changes to them as one **Diff** canvas: added objects and cords in green, edited ones in amber (dashed if only moved), removed ones as red ghosts. Objects are matched by text, cords and position, so the renumbered `#X connect` lines that clutter text diffs don't show up as changes.
+Shows Pure Data `.pd` and Max (`.maxpat`, `.maxhelp`, `.gendsp`, `.rnbopat`, `.amxd`) patches as graphs instead of text, and changes to them as one **Diff** canvas: added objects and cords in green, edited ones in amber (dashed if only moved), removed ones as red ghosts. Objects are matched by text, cords and position, so the renumbered `#X connect` lines that clutter text diffs don't show up as changes.
 
 One renderer, two front ends:
 - **VS Code extension** for local files, Source Control and commit history.
@@ -11,7 +11,7 @@ One renderer, two front ends:
 **Pd | Max** picks the drawing style (Max draws like Max 9's default dark theme), remembered separately for Pd and Max files. Click a subpatch to open it.
 
 ## VS Code
-`.pd`, `.maxpat`, `.maxhelp` and `.gendsp` files open as a patch (**Text** reopens the text editor). Changes opened from Source Control, Timeline or a commit compare show as one diff canvas (**Text** switches to the text diff; turn off with the `patcherview.diffByDefault` setting). The **Patch Diff** title button compares the open patch with HEAD.
+`.pd`, `.maxpat`, `.maxhelp`, `.gendsp` and `.rnbopat` files open as a patch (**Text** reopens the text editor). Changes opened from Source Control, Timeline or a commit compare show as one diff canvas (**Text** switches to the text diff; turn off with the `patcherview.diffByDefault` setting). The **Patch Diff** title button compares the open patch with HEAD.
 
 ```bash
 cd vscode

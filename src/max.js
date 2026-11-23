@@ -1,6 +1,6 @@
 import { wrap } from './pd.js';
 
-// Max patchers (.maxpat, .maxhelp, .gendsp, .amxd) -> the graph shape pd.js renders and diffs.
+// Max patchers (.maxpat, .maxhelp, .gendsp, .rnbopat, .amxd) -> the graph shape pd.js renders and diffs.
 // Boxes carry their own rect and iolet counts, so each node gets a ready-made `box` layout.
 const CW = 5.5; // ponytail: average char width of 10px sans-serif; text isn't measured, so wrapping is approximate
 const SHAPES = { message: 'msg', comment: 'text', 'live.comment': 'text', number: 'atom', flonum: 'atom', panel: 'cnv' };

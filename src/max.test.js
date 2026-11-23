@@ -38,6 +38,19 @@ test('amxd: JSON inside binary chunks, frozen data after it', () => {
   assert.equal(Object.keys(pd.patches[pd.rootPatchId].nodes).length, 5);
 });
 
+test('rnbopat: RNBO patcher JSON with rnbo_* box fields', () => {
+  const rnbo = (b, cls) => ({ box: { ...b.box, rnbo_serial: 1, rnbo_uniqueid: `${cls}_${b.box.id}`, rnboinfo: { classname: cls } } });
+  const RNBO = { patcher: { fileversion: 1, classnamespace: 'rnbo', boxes: [
+    rnbo(box('obj-1', 'newobj', 'in~ 1 @comment "Carrier frequency"', [72, 73, 115, 37], 0, 1, ['signal'], { linecount: 2 }), 'signalinlet'),
+    rnbo(box('obj-2', 'newobj', 'cycle~', [72, 388, 172, 23], 1, 2, ['signal', 'signal']), 'cycle~'),
+    rnbo(box('obj-3', 'newobj', 'out~ 1 @comment Signal', [72, 425, 140, 23], 1, 0), 'signaloutlet'),
+  ], lines: [line('obj-1', 0, 'obj-2', 0), line('obj-2', 0, 'obj-3', 0)] } };
+  const svg = render(parseMaxPatch(JSON.stringify(RNBO, null, '\t')), undefined, 'max');
+  assert.match(svg, />cycle~</);
+  assert.match(svg, />out~ 1 @comment Signal</);
+  assert.equal(svg.match(/class="pd-cord pd-sig/g).length, 2);
+});
+
 test('diff Max patches', () => {
   const next = structuredClone(MAX);
   next.patcher.boxes[0].box.text = 'cycle~ 220';
