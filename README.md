@@ -6,6 +6,8 @@ One renderer, two front ends:
 - **VS Code extension** for local files, Source Control and commit history.
 - **Browser extension** (Chrome + Firefox) for GitHub, GitLab and Codeberg file, commit and pull/merge request pages.
 
+**Install:** [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=FilipDobrocky.patcher-view) · [Open VSX](https://open-vsx.org/extension/FilipDobrocky/patcher-view) · [Chrome Web Store](https://chromewebstore.google.com/detail/patcherview/bjfngjejiplggjjjbkifgadoocppmcem) · [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/patcherview/)
+
 **Pd | Max** picks the drawing style (Max draws like Max 9's default dark theme), remembered separately for Pd and Max files. Click a subpatch to open it.
 
 ## VS Code
