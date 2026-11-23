@@ -1,6 +1,6 @@
 # PatcherView
 
-Shows Pure Data `.pd` and Max `.maxpat`, `.maxhelp` and `.gendsp` patches as patches instead of text, and changes to them as one **Diff** canvas:
+Shows Pure Data `.pd` and Max `.maxpat`, `.maxhelp`, `.gendsp` and `.rnbopat` patches as patches instead of text, and changes to them as one **Diff** canvas:
 
 - added objects and cords in green
 - edited ones in amber (dashed if only moved)

@@ -82,7 +82,7 @@ const get = (url) => fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(ne
 // [path pattern, parser, empty patch for an added/deleted file, kind (default drawing style)]
 const FORMATS = [
   [/\.pd$/i, parsePatch, '#N canvas 0 50 450 300 10;\n', 'pd'],
-  [/\.(maxpat|maxhelp|gendsp|amxd)$/i, parseMaxPatch, '{"patcher":{}}', 'max'],
+  [/\.(maxpat|maxhelp|gendsp|rnbopat|amxd)$/i, parseMaxPatch, '{"patcher":{}}', 'max'],
 ];
 const format = (path) => FORMATS.find(([re]) => re.test(path));
 

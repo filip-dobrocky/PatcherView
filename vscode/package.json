@@ -39,6 +39,9 @@
           },
           {
             "filenamePattern": "*.gendsp"
+          },
+          {
+            "filenamePattern": "*.rnbopat"
           }
         ],
         "priority": "default"
@@ -72,7 +75,7 @@
         {
           "command": "patcherview.diff",
           "group": "navigation",
-          "when": "isInDiffEditor && resourceExtname =~ /^[.](pd|maxpat|maxhelp|gendsp)$/i"
+          "when": "isInDiffEditor && resourceExtname =~ /^[.](pd|maxpat|maxhelp|gendsp|rnbopat)$/i"
         }
       ]
     }

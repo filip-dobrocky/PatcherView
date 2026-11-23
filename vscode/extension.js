@@ -48,7 +48,7 @@ async function diff(context) {
   }
 }
 
-const PATCH = /\.(pd|maxpat|maxhelp|gendsp)$/i;
+const PATCH = /\.(pd|maxpat|maxhelp|gendsp|rnbopat)$/i;
 const keepText = new Set(); // diffs switched to text with the Text button stay text
 const diffKey = (a, b) => a.toString() + '|' + b.toString();
 const swapping = new Set();
